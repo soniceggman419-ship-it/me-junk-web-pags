@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>QEMU Port Forward Manager</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background:#111827;
+    color:white;
+    padding:30px;
+}
+
+.container {
+    max-width:1000px;
+    margin:auto;
+}
+
+.card {
+    background:#1f2937;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:20px;
+}
+
+.rule {
+    display:grid;
+    grid-template-columns: 120px 1fr 120px 120px 60px;
+    gap:8px;
+    margin-bottom:10px;
+}
+
+input, button {
+    padding:10px;
+    border-radius:6px;
+    border:none;
+}
+
+input {
+    background:#374151;
+    color:white;
+}
+
+button {
+    background:#2563eb;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover {
+    background:#1d4ed8;
+}
+
+.remove {
+    background:#dc2626;
+}
+
+textarea {
+    width:100%;
+    height:140px;
+    background:#020617;
+    color:#22c55e;
+    font-family:monospace;
+    padding:15px;
+    border-radius:10px;
+}
+</style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+<h1>QEMU Port Forward Manager</h1>
+
+
+<div class="card">
+
+<h2>Add Forwarding Rule</h2>
+
+<button onclick="addRule('tcp')">
++ Add TCP Rule
+</button>
+
+<button onclick="addRule('udp')">
++ Add UDP Rule
+</button>
+
+
+<div id="rules"></div>
+
+</div>
+
+
+
+<div class="card">
+
+<h2>Generated QEMU Command</h2>
+
+<textarea id="output" readonly></textarea>
+
+<br><br>
+
+<button onclick="copyOutput()">
+Copy Command
+</button>
+
+</div>
+
+
+</div>
+
+
+
+<script>
+
+let rules=[];
+
+
+
+function addRule(type){
+
+rules.push({
+
+type:type,
+name:"",
+host:"",
+guest:""
+
+});
+
+render();
+
+}
+
+
+
+function removeRule(index){
+
+rules.splice(index,1);
+
+render();
+
+}
+
+
+
+function updateRule(index,field,value){
+
+rules[index][field]=value;
+
+generate();
+
+}
+
+
+
+function render(){
+
+let box=document.getElementById("rules");
+
+box.innerHTML="";
+
+
+rules.forEach((r,i)=>{
+
+
+box.innerHTML += `
+
+<div class="rule">
+
+<input 
+value="${r.type.toUpperCase()}"
+readonly
+>
+
+
+<input 
+placeholder="Rule name (required)"
+value="${r.name}"
+oninput="updateRule(${i},'name',this.value)"
+>
+
+
+<input
+placeholder="Host port"
+type="number"
+value="${r.host}"
+oninput="updateRule(${i},'host',this.value)"
+>
+
+
+<input
+placeholder="Guest port"
+type="number"
+value="${r.guest}"
+oninput="updateRule(${i},'guest',this.value)"
+>
+
+
+<button class="remove"
+onclick="removeRule(${i})">
+X
+</button>
+
+
+</div>
+
+`;
+
+});
+
+
+generate();
+
+}
+
+
+
+function generate(){
+
+let forwards=[];
+
+
+rules.forEach(r=>{
+
+
+if(
+r.name &&
+r.host &&
+r.guest
+){
+
+forwards.push(
+`hostfwd=${r.type}::${r.host}-:${r.guest}`
+);
+
+}
+
+
+});
+
+
+let command="";
+
+
+if(forwards.length){
+
+command =
+`-netdev user,id=net0,${forwards.join(",")} -device e1000,netdev=net0`;
+
+}
+
+
+document.getElementById("output").value=command;
+
+}
+
+
+
+function copyOutput(){
+
+navigator.clipboard.writeText(
+document.getElementById("output").value
+);
+
+}
+
+
+</script>
+
+
+</body>
+</html>
